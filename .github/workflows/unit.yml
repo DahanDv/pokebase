@@ -1,6 +1,11 @@
 name: Python tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+      - '**'
+  pull_request:
 
 jobs:
   unit:
@@ -36,3 +41,23 @@ jobs:
         run: pip install -r requirements/test.txt
       - name: Check style
         run: flake8
+
+  publish:
+    needs: [unit, style]
+    # Only publish on master branch. On Github actions, push is synonymous with merge.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: Install dependencies
+        run: pip install setuptools wheel twine
+      - name: Build and publish
+        uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
